@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Forecast</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../style.css">
+</head>
+
+<body>
+    <div class="header">
+        <h4 style="text-align: center; opacity: 1;">Repoter Lê Thị Khánh Ly - Weather Forecast</h4>
+        <div class="seeforecast">
+            <input type="text" id="cityInput" placeholder="Enter city name">
+            <button id="submitButton" onclick="getWeather()">See Forecast</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h4 style="text-align: left;">Current Weather: </h4>
+        <p id="location"></p>
+        <p id="temperature"></p>
+        <p id="weather"></p>
+        <p id="humidity"></p>
+        <p id="wind"></p>
+        <p id="clouds"></p> <!-- Thêm phần tử để hiển thị độ che phủ mây -->
+        <p id="pressure"></p> <!-- Thêm phần tử để hiển thị áp suất -->
+        <p id="windDirection"></p> <!-- Thêm phần tử để hiển thị hướng gió -->
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            getWeather();
+        });
+
+        var socket = new WebSocket("ws://localhost:8000");
+
+        socket.onopen = function (event) {
+            console.log("WebSocket connection established.");
+            getWeather(); // Gọi hàm getWeather() khi kết nối WebSocket đã được thiết lập
+        };
+
+        socket.onmessage = function (event) {
+            var data = JSON.parse(event.data);
+            document.getElementById("location").innerHTML = "Location: " + data.location;
+            document.getElementById("temperature").innerHTML = "Temperature: " + data.current.temperature + " °C";
+            document.getElementById("weather").innerHTML = "Weather: " + data.current.weather;
+            document.getElementById("humidity").innerHTML = "Humidity: " + data.current.humidity + "%";
+            document.getElementById("wind").innerHTML = "Wind Speed: " + data.current.wind_speed + " m/s";
+            document.getElementById("clouds").innerHTML = "Clouds: " + data.current.clouds + "%"; // Hiển thị độ che phủ mây
+            document.getElementById("pressure").innerHTML = "Pressure: " + data.current.pressure + " hPa"; // Hiển thị áp suất
+            document.getElementById("windDirection").innerHTML = "Wind Direction: " + data.current.wind_direction + "°"; // Hiển thị hướng gió
+        };
+
+        function getWeather() {
+            var location = document.getElementById("cityInput").value;
+            socket.send(location);
+        }
+
+        var chartContainer = document.getElementById("chartContainer");
+        chartContainer.innerHTML = '<img src="data:image/png;base64,' + data.chart + '" alt="Weather Chart">';
+
+    </script>
+</body>
+
+</html>
