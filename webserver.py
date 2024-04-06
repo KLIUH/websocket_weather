@@ -5,8 +5,8 @@ import requests
 import matplotlib.pyplot as plt
 import io
 import base64
+import numpy as np
 
-# Hàm lấy dữ liệu dự báo thời tiết từ OpenWeather API
 def fetch_forecast(api_key, location):
     forecast_url = f"http://api.openweathermap.org/data/2.5/forecast?q={location}&appid={api_key}&units=metric"
     response = requests.get(forecast_url)
@@ -46,6 +46,22 @@ def draw_chart_and_encode(dates, temperatures):
     chart_base64 = plot_to_base64(dates, temperatures)
     return chart_base64
 
+# Hàm trích xuất nhiệt độ cho mỗi ngày từ dữ liệu dự báo
+# Hàm trích xuất nhiệt độ cho 6 ngày tiếp theo từ dữ liệu dự báo
+from datetime import datetime, timedelta
+
+def extract_next_six_days_temperatures(forecast_data):
+    temperatures = {}
+    current_date = datetime.now().date()
+    for i, item in enumerate(forecast_data.get('list', [])[:40:8], 1):  # Lấy dữ liệu cho 6 ngày tiếp theo, mỗi ngày 8 lần ghi nhận
+        day = current_date + timedelta(days=i)  # Tính ngày tháng năm cho mỗi ngày
+        day_string = day.strftime('%d/%m/%Y')  # Chuyển đổi sang chuỗi ngày tháng năm
+        temperature = item['main']['temp']  # Lấy nhiệt độ
+        temperatures[day_string] = temperature
+    return temperatures
+
+
+
 async def weather_server(websocket, path):
     api_key = 'b6dedfe7447312efb73077384941aa06'  # Thay thế bằng API key của bạn
     while True:
@@ -81,14 +97,12 @@ async def weather_server(websocket, path):
                 clouds = current_weather_data['clouds'].get('all', 'N/A')
 
             # Xử lý dữ liệu và tạo biểu đồ
-            temperatures = [item['main']['temp'] for item in forecast_data.get('list', [])][::8]
-            dates = [item['dt_txt'] for item in forecast_data.get('list', [])][::8]
-            chart_base64 = draw_chart_and_encode(dates, temperatures)
+            temperatures = extract_next_six_days_temperatures(forecast_data)
 
             # Đóng gói dữ liệu thời tiết hiện tại và biểu đồ vào JSON
             payload = {
                 'location': location,
-                'chart': chart_base64,
+                'temperatures': temperatures,
                 'current': {
                     'temperature': temperature,
                     'weather': weather,
@@ -96,7 +110,9 @@ async def weather_server(websocket, path):
                     'wind_speed': wind_speed,
                     'clouds': clouds,
                     'pressure': pressure,
-                    'wind_direction': wind_direction
+                    'wind_direction': wind_direction,
+
+
                 }
             }
             await websocket.send(json.dumps(payload))
